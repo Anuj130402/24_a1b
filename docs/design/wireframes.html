@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CareConnect — wireframes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --paper:#FAF6EE; --surface:#FFFCF6; --sunk:#F1ECE1; --fill:#EDE7DA;
+  --line:#D9D0BE; --line-soft:#E4DCCC;
+  --ink:#23201B; --muted:#726A5C; --faint:#9A917F;
+  --pine:#2D5A4C; --pine-tint:#E6EFEA; --brick:#9C3B28; --amber:#8A6212;
+  --sans:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  box-sizing:border-box;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:light}}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.page{max-width:1000px;margin:0 auto;padding:40px 24px 80px}
+h1{font-size:28px;letter-spacing:-.02em;margin:0 0 4px}
+h2{font-size:20px;letter-spacing:-.015em;margin:0 0 4px}
+h3{font-size:15px;margin:0 0 8px}
+.lede{color:var(--muted);margin:0 0 40px;max-width:66ch}
+.rule{border:0;border-top:1px solid var(--line-soft);margin:48px 0}
+p{margin:0 0 12px;max-width:68ch}
+code{font-family:var(--mono);font-size:12.5px;background:var(--sunk);padding:1px 5px;border-radius:3px}
+:focus-visible{outline:2px solid var(--pine);outline-offset:2px}
+
+/* personas */
+.personas{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-bottom:8px}
+.persona{background:var(--surface);border:1px solid var(--line-soft);border-radius:8px;padding:18px}
+.persona h3{margin-bottom:6px}
+.persona p{font-size:14px;color:var(--muted);margin:0 0 10px}
+.persona ul{margin:0;padding-left:18px;font-size:14px;color:var(--muted)}
+.persona li{margin-bottom:3px}
+.screens-tag{font-family:var(--mono);font-size:11.5px;color:var(--pine);margin-top:10px}
+
+/* screen block */
+.screen{margin-bottom:56px}
+.screen__head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.screen__num{font-family:var(--mono);font-size:13px;color:var(--faint)}
+.screen__meta{font-family:var(--mono);font-size:12px;color:var(--pine);margin:6px 0 16px}
+
+/* wireframe canvas */
+.wf{border:1px solid var(--line);border-radius:6px;background:var(--surface);overflow:hidden}
+.wf__bar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--sunk);
+  border-bottom:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.wf__body{display:flex;min-height:300px}
+.nav{width:132px;flex:0 0 132px;border-right:1px solid var(--line);background:var(--sunk);padding:10px 8px}
+.nav b{display:block;font-size:12px;padding:4px 8px 10px}
+.nav i{display:block;font-style:normal;font-size:12px;color:var(--muted);padding:4px 8px;border-radius:4px}
+.nav i.on{background:var(--pine-tint);color:var(--pine);font-weight:500}
+.body{flex:1;min-width:0;padding:16px}
+
+.b{border:1px solid var(--line);border-radius:4px;background:var(--fill);
+  padding:8px 10px;font-size:12.5px;color:var(--muted)}
+.b--ph{background:repeating-linear-gradient(45deg,transparent,transparent 7px,rgba(0,0,0,.035) 7px,rgba(0,0,0,.035) 14px);
+  border-style:dashed;display:flex;align-items:center;justify-content:center;text-align:center}
+.b--in{background:var(--surface)}
+.b--btn{background:var(--pine);color:#FFFCF6;border-color:var(--pine);text-align:center;font-weight:500}
+.b--btn2{background:var(--surface);text-align:center}
+.b--warn{background:#F6E7E2;border-color:#E8CFC7;color:var(--brick)}
+.b--ok{background:var(--pine-tint);border-color:#C9DED5;color:var(--pine)}
+.b--note{background:#F6EDDA;border-color:#E8D9B4;color:var(--amber)}
+
+.r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.g{display:grid;gap:8px;margin-bottom:10px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g-side{grid-template-columns:1.1fr 1fr}
+.grow{flex:1;min-width:0}
+.title{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:8px}
+
+/* fake table */
+.t{border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.t div{display:grid;font-size:11.5px}
+.t .h{background:var(--sunk);color:var(--muted);border-bottom:1px solid var(--line)}
+.t .h span,.t .d span{padding:6px 9px}
+.t .d{border-bottom:1px solid var(--line-soft);color:var(--faint)}
+.t .d:last-child{border-bottom:0}
+.t .num{text-align:right;font-family:var(--mono)}
+.c5{grid-template-columns:1.2fr 1.4fr .9fr .8fr .9fr}
+.c4{grid-template-columns:.9fr .7fr .9fr 1fr}
+.c3{grid-template-columns:.5fr 1.6fr .9fr}
+
+/* annotation markers */
+.m{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;
+  border-radius:50%;background:var(--pine);color:#FFFCF6;font-size:10px;font-family:var(--mono);
+  flex:0 0 16px;margin-right:6px}
+.notes{margin-top:14px;display:grid;gap:7px}
+.note{display:flex;font-size:13.5px;color:var(--muted);align-items:flex-start}
+.note b{color:var(--ink);font-weight:500}
+
+.states{margin-top:12px;font-size:13px;color:var(--muted);
+  background:var(--sunk);border-radius:6px;padding:10px 14px}
+.states b{color:var(--ink);font-weight:500;font-size:12.5px}
+
+@media (max-width:720px){
+  .wf__body{display:block}
+  .nav{width:auto;flex:none;display:flex;gap:4px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line)}
+  .nav b{display:none}
+  .nav i{white-space:nowrap}
+  .g2,.g3,.g-side{grid-template-columns:1fr}
+  .page{padding:24px 16px 56px}
+}
+@media print{ .page{max-width:none} .screen{break-inside:avoid} }
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>CareConnect — wireframes</h1>
+<p class="lede">Structure and data flow for the six screens. Deliberately unstyled — colours and
+components come from the design system. Endpoints reference <code>docs/api_endpoints.md</code>.</p>
+
+<h2>Who uses this</h2>
+<p class="lede" style="margin-bottom:20px">Three roles, switched from a dropdown in the top bar. Real login is out of scope.</p>
+
+<div class="personas">
+  <div class="persona">
+    <h3>Front-desk coordinator</h3>
+    <p>Works at a clinic reception. Handles patients arriving for consultations.</p>
+    <ul>
+      <li>Look up a patient and check their HSA balance before booking</li>
+      <li>Book an appointment and collect the copay</li>
+      <li>Move patients through waiting → consultation → discharged</li>
+      <li>Answer "where did my money go?" from the ledger</li>
+    </ul>
+    <div class="screens-tag">Browse · Book · Audit</div>
+  </div>
+  <div class="persona">
+    <h3>Clinic administrator</h3>
+    <p>Oversees several clinics. Cares about revenue trends and patient sentiment.</p>
+    <ul>
+      <li>See whether a clinic's revenue is rising or falling</li>
+      <li>Compare clinics against each other on a given day</li>
+      <li>Check monthly discharge counts</li>
+      <li>Read what patients say about care quality</li>
+    </ul>
+    <div class="screens-tag">Analytics · Reviews</div>
+  </div>
+  <div class="persona">
+    <h3>Dispatch coordinator</h3>
+    <p>Sends mobile nurses to patients who cannot travel.</p>
+    <ul>
+      <li>Pick a location and see which nurses are nearby</li>
+      <li>Know how far away each one is</li>
+      <li>Watch positions update as nurses move</li>
+    </ul>
+    <div class="screens-tag">Map</div>
+  </div>
+</div>
+
+<hr class="rule">
+
+<!-- 1 BROWSE -->
+<section class="screen">
+  <div class="screen__head"><span class="screen__num">01</span><h2>Browse</h2></div>
+  <div class="screen__meta">GET /patients · /clinics · /appointments · /patients/:id · /clinics/:id</div>
+
+  <div class="wf">
+    <div class="wf__bar">CareConnect <span style="margin-left:auto">Acting as: Front-desk coordinator ▾</span></div>
+    <div class="wf__body">
+      <nav class="nav">
+        <b>CareConnect</b>
+        <i class="on">Browse</i><i>Book</i><i>Audit</i><i>Analytics</i><i>Map</i><i>Reviews</i>
+      </nav>
+      <div class="body">
+        <div class="r"><div class="b" style="background:var(--pine-tint);border-color:#C9DED5;color:var(--pine)">Patients</div><div class="b">Clinics</div><div class="b">Appointments</div></div>
+        <div class="r">
+          <div class="b b--in grow">Search by name…</div>
+          <div class="b b--in" style="width:150px">Status: all ▾</div>
+        </div>
+        <div class="t">
+          <div class="h c5"><span>ID</span><span>Name</span><span>Status</span><span class="num">Balance</span><span>Created</span></div>
+          <div class="d c5"><span>a4f2c81e</span><span>Meera Raghavan</span><span>Waiting</span><span class="num">₹49,070.00</span><span>04 Oct</span></div>
+          <div class="d c5"><span>b03f5d71</span><span>Arun Pillai</span><span>Discharged</span><span class="num">₹12,400.00</span><span>03 Oct</span></div>
+          <div class="d c5"><span>e9d2807a</span><span>Kavya Menon</span><span>In consultation</span><span class="num">₹8,250.00</span><span>03 Oct</span></div>
+          <div class="d c5"><span>14ab6cf0</span><span>Rohit Desai</span><span>Discharged</span><span class="num">₹31,900.00</span><span>02 Oct</span></div>
+        </div>
+        <div class="r" style="margin-top:10px">
+          <div class="b b--btn2" style="width:92px">Previous</div>
+          <div style="font-size:12px;color:var(--faint)">1–25 of 25,000</div>
+          <div class="b b--btn2" style="width:70px">Next</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><span class="m">1</span><span><b>Three tabs, one layout.</b> Patients, clinics and appointments share the table and pagination components — only the columns change.</span></div>
+    <div class="note"><span class="m">2</span><span><b>Server-side paging, always.</b> 25 rows per request. Never load 60,000 appointments into the browser.</span></div>
+    <div class="note"><span class="m">3</span><span><b>Clicking a row opens a detail view.</b> For a patient: balance, their open appointment if any, and a link into their ledger.</span></div>
+    <div class="note"><span class="m">4</span><span><b>Names are joined server-side.</b> The appointments table shows patient and clinic names, not UUIDs. No N+1 lookups from the browser.</span></div>
+  </div>
+
+  <div class="states"><b>States</b> — Loading: skeleton or spinner inside the table frame. Empty: "No patients match that search." Error: banner above the table, table hidden.</div>
+</section>
+
+<!-- 2 TRANSACTION -->
+<section class="screen">
+  <div class="screen__head"><span class="screen__num">02</span><h2>Book an appointment</h2><span style="font-size:13px;color:var(--muted)">Workflow 1</span></div>
+  <div class="screen__meta">POST /appointments → CALL create_appointment_atomic()</div>
+
+  <div class="wf">
+    <div class="wf__bar">CareConnect <span style="margin-left:auto">Acting as: Front-desk coordinator ▾</span></div>
+    <div class="wf__body">
+      <nav class="nav"><b>CareConnect</b><i>Browse</i><i class="on">Book</i><i>Audit</i><i>Analytics</i><i>Map</i><i>Reviews</i></nav>
+      <div class="body">
+        <div class="g g-side">
+          <div>
+            <div class="title">New appointment</div>
+            <div class="g">
+              <div style="font-size:11.5px;color:var(--faint)">Patient</div>
+              <div class="b b--in">Meera Raghavan — ₹49,320.00 ▾</div>
+              <div style="font-size:11.5px;color:var(--faint)">Clinic</div>
+              <div class="b b--in">Nilgiri Family Clinic ▾</div>
+              <div style="font-size:11.5px;color:var(--faint)">Copay</div>
+              <div class="b b--in">250.00</div>
+            </div>
+            <div class="b b--btn" style="width:160px;margin-top:4px">Book appointment</div>
+          </div>
+          <div>
+            <div class="title">Result</div>
+            <div class="b b--ok" style="margin-bottom:8px">Appointment booked.</div>
+            <div class="g g2" style="margin-bottom:10px">
+              <div class="b">Before<br><b style="font-family:var(--mono);color:var(--ink)">₹49,320.00</b></div>
+              <div class="b">After<br><b style="font-family:var(--mono);color:var(--ink)">₹49,070.00</b></div>
+            </div>
+            <div style="font-size:11.5px;color:var(--faint);margin-bottom:6px">Audit entry written by the trigger</div>
+            <div class="t">
+              <div class="h c4"><span>Type</span><span class="num">Amount</span><span class="num">Balance</span><span>When</span></div>
+              <div class="d c4"><span>Debit</span><span class="num">−₹250.00</span><span class="num">₹49,070.00</span><span>18:02</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="b b--warn" style="margin-top:12px">This patient is already in an active consultation. Discharge the current appointment before booking another.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><span class="m">1</span><span><b>Balance before and after, side by side.</b> Required by the spec, and it's the clearest proof the procedure did what it claims.</span></div>
+    <div class="note"><span class="m">2</span><span><b>The audit row is read back and shown.</b> Nobody wrote it — the trigger did. Showing it is how the UI demonstrates that.</span></div>
+    <div class="note"><span class="m">3</span><span><b>Two failures must be demonstrable.</b> Insufficient balance (<code>P0001</code>, the message is already readable) and a second active consultation (<code>23505</code>, translated by the middleware).</span></div>
+    <div class="note"><span class="m">4</span><span><b>Disable the button</b> when the selected patient already has an open appointment — <code>/patients/:id</code> returns <code>open_appointment</code> for exactly this.</span></div>
+  </div>
+
+  <div class="states"><b>States</b> — Submitting: button disabled, label "Booking…". Error: banner in the result panel, form values kept so the user can correct and retry. Fresh load: result panel shows "Book an appointment to see the result here."</div>
+</section>
+
+<!-- 3 AUDIT -->
+<section class="screen">
+  <div class="screen__head"><span class="screen__num">03</span><h2>Audit trail</h2></div>
+  <div class="screen__meta">GET /patients/:id/audit?from=&to=&page=</div>
+
+  <div class="wf">
+    <div class="wf__bar">CareConnect <span style="margin-left:auto">Acting as: Front-desk coordinator ▾</span></div>
+    <div class="wf__body">
+      <nav class="nav"><b>CareConnect</b><i>Browse</i><i>Book</i><i class="on">Audit</i><i>Analytics</i><i>Map</i><i>Reviews</i></nav>
+      <div class="body">
+        <div class="r">
+          <div class="b b--in grow">Patient: Meera Raghavan ▾</div>
+          <div class="b b--in" style="width:112px">From</div>
+          <div class="b b--in" style="width:112px">To</div>
+        </div>
+        <div class="g g3" style="margin-bottom:12px">
+          <div class="b">Current balance<br><b style="font-family:var(--mono);color:var(--ink)">₹49,070.00</b></div>
+          <div class="b">Credits<br><b style="font-family:var(--mono);color:var(--pine)">+₹62,500.00</b></div>
+          <div class="b">Debits<br><b style="font-family:var(--mono);color:var(--brick)">−₹13,430.00</b></div>
+        </div>
+        <div class="t">
+          <div class="h c4"><span>Type</span><span class="num">Amount</span><span class="num">Balance after</span><span>When</span></div>
+          <div class="d c4"><span>Credit</span><span class="num">+₹12,500.00</span><span class="num">₹47,320.00</span><span>02 Oct 09:14</span></div>
+          <div class="d c4"><span>Debit</span><span class="num">−₹2,500.00</span><span class="num">₹44,820.00</span><span>02 Oct 14:51</span></div>
+          <div class="d c4"><span>Debit</span><span class="num">−₹750.00</span><span class="num">₹44,070.00</span><span>03 Oct 11:02</span></div>
+          <div class="d c4"><span>Credit</span><span class="num">+₹5,000.00</span><span class="num">₹49,070.00</span><span>04 Oct 08:30</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><span class="m">1</span><span><b>Read-only.</b> No edit or delete controls anywhere on this screen — the ledger is append-only by design.</span></div>
+    <div class="note"><span class="m">2</span><span><b>The running balance already exists.</b> <code>balance_after</code> is written by the trigger on every row. Render the column; don't compute it.</span></div>
+    <div class="note"><span class="m">3</span><span><b>Newest first</b>, with date filters. Needs the index from change C5 or it scans 116,655 rows per page.</span></div>
+    <div class="note"><span class="m">4</span><span><b>Colour carries direction.</b> Credits pine, debits brick, balance in a heavier weight. Reads like a passbook.</span></div>
+  </div>
+
+  <div class="states"><b>States</b> — No patient selected: "Choose a patient to see their ledger." Empty range: "No movements between those dates." Error: banner, filters stay usable.</div>
+</section>
+
+<!-- 4 ANALYTICS -->
+<section class="screen">
+  <div class="screen__head"><span class="screen__num">04</span><h2>Analytics</h2><span style="font-size:13px;color:var(--muted)">Workflow 2 + materialized view</span></div>
+  <div class="screen__meta">GET /analytics/moving-average · /analytics/ranking · /analytics/summary · POST /analytics/refresh</div>
+
+  <div class="wf">
+    <div class="wf__bar">CareConnect <span style="margin-left:auto">Acting as: Clinic administrator ▾</span></div>
+    <div class="wf__body">
+      <nav class="nav"><b>CareConnect</b><i>Browse</i><i>Book</i><i>Audit</i><i class="on">Analytics</i><i>Map</i><i>Reviews</i></nav>
+      <div class="body">
+        <div class="r">
+          <div class="b b--in grow">Clinic: Nilgiri Family Clinic ▾</div>
+          <div class="b b--in" style="width:112px">From</div>
+          <div class="b b--in" style="width:112px">To</div>
+        </div>
+        <div class="b b--ph" style="height:140px;margin-bottom:12px">Line chart — 7-day moving average of copay revenue<br>x: revenue_date · y: moving_avg_7day</div>
+        <div class="g g-side">
+          <div>
+            <div class="title">Ranking — 28 Sep</div>
+            <div class="t">
+              <div class="h c3"><span>Rank</span><span>Clinic</span><span class="num">7-day avg</span></div>
+              <div class="d c3"><span>1</span><span>Saraswati Urgent Care</span><span class="num">₹3,480.00</span></div>
+              <div class="d c3"><span>2</span><span>Nilgiri Family Clinic</span><span class="num">₹3,120.00</span></div>
+              <div class="d c3"><span>3</span><span>Kaveri Polyclinic</span><span class="num">₹2,905.00</span></div>
+            </div>
+          </div>
+          <div>
+            <div class="title">September summary</div>
+            <div class="g g2" style="margin-bottom:8px">
+              <div class="b">Discharges<br><b style="font-family:var(--mono);color:var(--ink)">4,820</b></div>
+              <div class="b">Clinics<br><b style="font-family:var(--mono);color:var(--ink)">250</b></div>
+            </div>
+            <div class="r">
+              <div class="b b--btn2" style="width:120px">Refresh view</div>
+              <div style="font-size:11.5px;color:var(--faint)">Refreshed 14 min ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><span class="m">1</span><span><b>Clinic filter goes on the outer SELECT.</b> <code>DENSE_RANK()</code> partitions by date across all 250 clinics — filter inside the CTE and every rank comes back as 1.</span></div>
+    <div class="note"><span class="m">2</span><span><b>Date range is safe to push down</b> into the CTE, and it's what keeps the query from returning 134,750 rows.</span></div>
+    <div class="note"><span class="m">3</span><span><b>Ranks tie.</b> <code>DENSE_RANK</code> means 1, 1, 2 rather than 1, 1, 3. Clinics with no revenue on a date all sit at ₹0.00 together.</span></div>
+    <div class="note"><span class="m">4</span><span><b>"Refreshed N min ago" plus a button</b> — both required by the spec. The timestamp needs change C11; show "unknown" until then.</span></div>
+  </div>
+
+  <div class="states"><b>States</b> — Loading: chart area keeps its height so the layout doesn't jump. Empty: "No revenue recorded in this range." Refreshing: button disabled, "Refreshing…" — it takes a few seconds.</div>
+</section>
+
+<!-- 5 MAP -->
+<section class="screen">
+  <div class="screen__head"><span class="screen__num">05</span><h2>Map</h2><span style="font-size:13px;color:var(--muted)">Workflow 3</span></div>
+  <div class="screen__meta">GET /nurses/near?lat=&lng=&radius= → $geoNear</div>
+
+  <div class="wf">
+    <div class="wf__bar">CareConnect <span style="margin-left:auto">Acting as: Dispatch coordinator ▾</span></div>
+    <div class="wf__body">
+      <nav class="nav"><b>CareConnect</b><i>Browse</i><i>Book</i><i>Audit</i><i>Analytics</i><i class="on">Map</i><i>Reviews</i></nav>
+      <div class="body">
+        <div class="r">
+          <div class="b b--in grow">Origin: Nilgiri Family Clinic ▾</div>
+          <div class="b b--in" style="width:120px">Radius: 5 km</div>
+          <div class="b" style="font-size:11.5px">● Live · 5s</div>
+        </div>
+        <div class="g g-side">
+          <div class="b b--ph" style="height:210px">Map — origin marker, 5 km circle,<br>one marker per nurse</div>
+          <div>
+            <div class="title">Nurses within 5 km</div>
+            <div class="t">
+              <div class="h c3"><span></span><span>Nurse</span><span class="num">Distance</span></div>
+              <div class="d c3"><span>●</span><span>nurse_3</span><span class="num">412 m</span></div>
+              <div class="d c3"><span>●</span><span>nurse_1</span><span class="num">1.8 km</span></div>
+              <div class="d c3"><span>●</span><span>nurse_5</span><span class="num">3.2 km</span></div>
+              <div class="d c3"><span>●</span><span>nurse_2</span><span class="num">4.6 km</span></div>
+            </div>
+            <div class="b b--note" style="margin-top:8px;font-size:11.5px">Pings expire after 2 hours — re-seed before a demo</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><span class="m">1</span><span><b>Origin is selectable.</b> A1 hardcoded it. Clinic dropdown drives lat/lng; the list is sorted nearest-first.</span></div>
+    <div class="note"><span class="m">2</span><span><b>One marker per nurse</b>, not per ping. Change C4 groups by <code>nurse_id</code>; without it you plot the same five nurses thousands of times.</span></div>
+    <div class="note"><span class="m">3</span><span><b>Poll every few seconds</b> — explicitly allowed. Update markers in place; never reload the page.</span></div>
+    <div class="note"><span class="m">4</span><span><b>GeoJSON is [lng, lat]; Leaflet wants [lat, lng].</b> Swap at the component boundary, not in the API.</span></div>
+  </div>
+
+  <div class="states"><b>States</b> — Loading: map renders with the circle, list shows a spinner. Empty: "No active nurses within 5 km. Try a wider radius." — also what you see once the TTL has expired, so say so.</div>
+</section>
+
+<!-- 6 REVIEWS -->
+<section class="screen">
+  <div class="screen__head"><span class="screen__num">06</span><h2>Reviews</h2><span style="font-size:13px;color:var(--muted)">Workflow 4</span></div>
+  <div class="screen__meta">GET /clinics/:id/reviews/stats → $facet · GET /clinics/:id/catalog</div>
+
+  <div class="wf">
+    <div class="wf__bar">CareConnect <span style="margin-left:auto">Acting as: Clinic administrator ▾</span></div>
+    <div class="wf__body">
+      <nav class="nav"><b>CareConnect</b><i>Browse</i><i>Book</i><i>Audit</i><i>Analytics</i><i>Map</i><i class="on">Reviews</i></nav>
+      <div class="body">
+        <div class="r"><div class="b b--in grow">Clinic: Nilgiri Family Clinic ▾</div></div>
+        <div class="g g3" style="margin-bottom:12px">
+          <div class="b b--ph" style="height:124px">Bar chart<br>rating 1–5</div>
+          <div>
+            <div class="title" style="font-size:12px">Top tags</div>
+            <div class="t">
+              <div class="d c3" style="grid-template-columns:1.6fr .7fr"><span>thorough</span><span class="num">4,120</span></div>
+              <div class="d c3" style="grid-template-columns:1.6fr .7fr"><span>empathetic</span><span class="num">3,890</span></div>
+              <div class="d c3" style="grid-template-columns:1.6fr .7fr"><span>punctual</span><span class="num">3,205</span></div>
+              <div class="d c3" style="grid-template-columns:1.6fr .7fr"><span>rushed</span><span class="num">1,440</span></div>
+            </div>
+          </div>
+          <div class="b" style="display:flex;flex-direction:column;justify-content:center;text-align:center">
+            <b style="font-family:var(--mono);font-size:26px;color:var(--ink)">3.42</b>
+            <span style="font-size:11.5px">average of 10,000 reviews</span>
+          </div>
+        </div>
+        <div class="title">Specialists and medications</div>
+        <div class="b" style="background:var(--surface)">
+          <div style="font-size:13px;color:var(--ink);font-weight:500">Dr. Anand Varma — Cardiology</div>
+          <div style="font-size:11.5px;margin-top:6px">Monday · 09:00–11:00, 14:00–16:00</div>
+          <div style="font-size:11.5px">Thursday · 10:00–13:00</div>
+          <div style="font-size:11.5px;margin-top:6px">Atorvastatin — tablet · prescription required</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><span class="m">1</span><span><b>Three charts, one request.</b> <code>$facet</code> computes all three in a single pass over the collection — don't split it into three calls.</span></div>
+    <div class="note"><span class="m">2</span><span><b>Per-clinic needs a <code>$match</code></b> (change C7). A1's pipeline reports globally.</span></div>
+    <div class="note"><span class="m">3</span><span><b>Render the catalog as nested lists.</b> <code>availability</code> and <code>medications_handled</code> are variable-length — that's the point of keeping them in Mongo. Don't flatten to a table, don't dump raw JSON.</span></div>
+    <div class="note"><span class="m">4</span><span><b>Expect empty until change C1 lands.</b> Review and catalog documents currently reference no real clinic, so every clinic returns zero.</span></div>
+  </div>
+
+  <div class="states"><b>States</b> — Loading: skeletons at fixed heights. Empty: "No reviews for this clinic yet." Error: banner, clinic picker stays usable.</div>
+</section>
+
+<hr class="rule">
+
+<h2>Applies to every screen</h2>
+<div class="notes" style="margin-top:12px">
+  <div class="note"><span class="m">·</span><span><b>Loading, empty and error are mandatory.</b> No blank pages — it's an explicit grading line. The page template in the starter kit has all three branches already.</span></div>
+  <div class="note"><span class="m">·</span><span><b>Actor dropdown in the top bar</b> switches between the three roles. It only changes which records are in scope; there's no authentication.</span></div>
+  <div class="note"><span class="m">·</span><span><b>Sidebar collapses to a horizontal scroller</b> under 760px. Laptop properly, phone reasonably.</span></div>
+  <div class="note"><span class="m">·</span><span><b>Status changes happen from Browse,</b> on the appointment detail view — that's how you demonstrate the partial unique index: discharge, then book the same patient again.</span></div>
+</div>
+
+</div>
+</body>
+</html>
