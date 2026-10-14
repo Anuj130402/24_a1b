@@ -1,0 +1,73 @@
+/* ============================================================
+   CareConnect — design tokens
+   If a colour or spacing value is not here, it does not exist.
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+
+  --paper:        #FAF6EE;
+  --surface:      #FFFCF6;
+  --surface-sunk: #F3EEE3;
+  --surface-hover:#F6F1E6;
+
+  --line:         #E4DCCC;
+  --line-strong:  #CFC4AE;
+
+  --ink:          #23201B;
+  --ink-muted:    #726A5C;
+  --ink-faint:    #9A917F;
+
+  --pine:         #2D5A4C;
+  --pine-deep:    #234739;
+  --pine-tint:    #E6EFEA;
+
+  --brick:        #9C3B28;
+  --brick-deep:   #7E2E1F;
+  --brick-tint:   #F6E7E2;
+
+  --amber:        #8A6212;
+  --amber-tint:   #F6EDDA;
+
+  --series-1: #2D5A4C;
+  --series-2: #8A6212;
+  --series-3: #4A6D8C;
+  --series-4: #9C3B28;
+  --series-5: #6B5B8A;
+
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system,
+               "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo,
+               Consolas, monospace;
+
+  --t-xs:   0.75rem;
+  --t-sm:   0.8125rem;
+  --t-base: 0.9375rem;
+  --t-md:   1.0625rem;
+  --t-lg:   1.375rem;
+  --t-xl:   1.75rem;
+
+  --leading-tight: 1.25;
+  --leading-body:  1.55;
+
+  --s-1:  4px;
+  --s-2:  8px;
+  --s-3:  12px;
+  --s-4:  16px;
+  --s-5:  24px;
+  --s-6:  32px;
+  --s-7:  48px;
+
+  --r-sm: 3px;
+  --r:    5px;
+  --r-lg: 8px;
+
+  --lift: 0 1px 2px rgba(35, 32, 27, 0.06);
+
+  --sidebar-w:   208px;
+  --content-max: 1120px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { color-scheme: light; }
+}
