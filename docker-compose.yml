@@ -1,3 +1,4 @@
+# Local PostgreSQL and MongoDB. Database name, user, and ports match the README.
 services:
   postgres:
     image: postgres:16-alpine

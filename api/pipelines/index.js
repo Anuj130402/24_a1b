@@ -1,5 +1,6 @@
 // MongoDB aggregation pipelines, kept in one place so the Assignment 1
 // scripts in mongo/ and the API share a single definition.
+// Callers pass longitude first, then latitude: that is GeoJSON axis order.
 
 /**
  * Workflow 3 — nearest nurse.

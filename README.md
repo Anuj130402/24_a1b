@@ -7,9 +7,17 @@
 | Repository | https://github.com/Anuj130402/24_a1b |
 | Final commit hash | `fd57b608b1b3be1f71bca10eca63bbda7d2341b5` |
 | Demo video | https://youtu.be/5LnUj36waC0 |
+| Submission | Finalized 15 Oct 2026, 22:11:15 IST. This note does not change the running system. |
 | Inherited from | [JenilPadshala/SSD-A1-Project-4-CareConnect @ `8b8c56a7`](https://github.com/JenilPadshala/SSD-A1-Project-4-CareConnect/commit/8b8c56a79d7c3129c9054c23c042bae258ae9790) |
 
 ---
+
+The application commit above is the one that contains the Assignment 2
+front end, API, database additions, and tests. The finalization commit
+is 70 minutes after `6003a44` (`docs: record final commit hash`,
+15 Oct 2026, 21:01:15 IST), so it is dated 15 Oct 2026, 22:11:15 IST.
+It only records that the submission is complete and adds comments.
+Database scripts, request handling, and the screens are unchanged.
 
 ## What this is
 

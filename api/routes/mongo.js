@@ -53,6 +53,7 @@ router.get('/nurses/near', async (req, res, next) => {
       throw badRequest('Latitude must be between -90 and 90, and longitude between -180 and 180.');
     }
 
+    // Read-only aggregation. The pipeline is shared with mongo/ via api/pipelines.
     const data = await mongo
       .collection('NursePings')
       .aggregate(nearestNurses(lng, lat, radius))
