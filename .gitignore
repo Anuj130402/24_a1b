@@ -1,5 +1,21 @@
-// ignore Instructions directory
+# ignore Instructions directory
 Instructions/
+
+# ---------------------------------------------------------------
+# Node (Assignment 2). The inherited Assignment 1 .gitignore was
+# Python-only, so nothing here was excluded before.
+# ---------------------------------------------------------------
+node_modules/
+*/node_modules/
+**/node_modules/
+web/dist/
+api/dist/
+npm-debug.log*
+yarn-error.log*
+.npm/
+
+# Submission archives
+*.zip
 
 # Virtual environments
 .venv/

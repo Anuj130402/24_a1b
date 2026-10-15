@@ -6,7 +6,7 @@ import transactions from './routes/transactions.js';
 import analytics from './routes/analytics.js';
 import mongoRoutes from './routes/mongo.js';
 import { errorHandler } from './middleware/errors.js';
-import { pg, mongo } from './db.js';
+import { pg, mongo, connectMongo } from './db.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -36,6 +36,10 @@ app.use((_req, res) => res.status(404).json({ error: 'No such endpoint.' }));
 
 // Must be last, after every route.
 app.use(errorHandler);
+
+// Attempt the Mongo connection but start listening regardless, so a
+// missing database is reported by /health rather than killing the process.
+await connectMongo();
 
 app.listen(PORT, () => {
   console.log(`CareConnect API on http://localhost:${PORT}`);

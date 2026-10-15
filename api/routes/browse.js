@@ -12,6 +12,18 @@ function paging(req) {
   return { page, limit, offset: (page - 1) * limit };
 }
 
+/**
+ * An omitted query parameter arrives as undefined, but one written with
+ * no value (?patient_id=) arrives as "". Both mean "do not filter", so
+ * both must become SQL NULL — an empty string cast to uuid raises
+ * 22P02 and the request fails for no good reason.
+ */
+function optional(value) {
+  if (value === undefined || value === null) return null;
+  const trimmed = String(value).trim();
+  return trimmed === '' ? null : trimmed;
+}
+
 // --- patients -------------------------------------------------------
 
 router.get('/patients', async (req, res, next) => {
@@ -80,8 +92,9 @@ router.get('/clinics', async (req, res, next) => {
   try {
     const { page, limit, offset } = paging(req);
     const q = req.query.q ?? '';
-    const accepting =
-      req.query.accepting === undefined ? null : req.query.accepting === 'true';
+    // ?accepting= with no value means "no filter", same as omitting it.
+    const acceptingRaw = optional(req.query.accepting);
+    const accepting = acceptingRaw === null ? null : acceptingRaw === 'true';
 
     const { rows } = await pg.query(
       `SELECT id, name, latitude, longitude, is_accepting_patients
@@ -127,9 +140,9 @@ router.get('/clinics/:id', async (req, res, next) => {
 router.get('/appointments', async (req, res, next) => {
   try {
     const { page, limit, offset } = paging(req);
-    const patientId = req.query.patient_id ?? null;
-    const clinicId = req.query.clinic_id ?? null;
-    const status = req.query.status ?? null;
+    const patientId = optional(req.query.patient_id);
+    const clinicId = optional(req.query.clinic_id);
+    const status = optional(req.query.status);
 
     const where = `
        WHERE ($1::uuid IS NULL OR a.patient_id = $1)

@@ -9,6 +9,39 @@ const router = Router();
 // Default window when the caller gives no dates.
 const DEFAULT_DAYS = 90;
 
+// clinic_moving_average() cross-joins 250 clinics against every day in
+// the range, so the row count is 250 x days. A two-year ceiling keeps
+// the worst case near 180,000 rows; an unbounded range (someone typing
+// year 1900) would build millions and spill heavily to disk.
+const MAX_RANGE_DAYS = 730;
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Validates YYYY-MM-DD and that the date actually exists. */
+function parseDate(value, label) {
+  if (!DATE_RE.test(value)) {
+    throw badRequest(`${label} must be a date in the format YYYY-MM-DD.`);
+  }
+  const d = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) {
+    throw badRequest(`${label} is not a real date.`);
+  }
+  return d;
+}
+
+/** Shared by the chart and the leaderboard. */
+function validateRange(from, to) {
+  const a = parseDate(from, 'from');
+  const b = parseDate(to, 'to');
+  if (a > b) throw badRequest('The "from" date must not be after the "to" date.');
+  const days = Math.round((b - a) / 86400000);
+  if (days > MAX_RANGE_DAYS) {
+    throw badRequest(
+      `That range covers ${days} days. Please request ${MAX_RANGE_DAYS} days or fewer.`
+    );
+  }
+}
+
 // Dates are cast to text in SQL and never round-tripped through a JS
 // Date. node-postgres materialises a DATE at LOCAL midnight, so
 // .toISOString() on a UTC+5:30 machine shifts it back into the previous
@@ -39,6 +72,7 @@ router.get('/analytics/moving-average', async (req, res, next) => {
     const range = await defaultRange();
     const from = req.query.from || range.from;
     const to = req.query.to || range.to;
+    validateRange(from, to);
 
     const { rows } = await pg.query(
       `SELECT revenue_date, daily_revenue, rolling_total_7day,
@@ -64,6 +98,8 @@ router.get('/analytics/ranking', async (req, res, next) => {
   try {
     const limit = Math.min(50, Number(req.query.limit) || 20);
     let date = req.query.date;
+
+    if (date) parseDate(date, 'date');
 
     if (!date) {
       // NOT simply MAX(discharged_at). Discharging two appointments by
@@ -115,6 +151,9 @@ router.get('/analytics/ranking', async (req, res, next) => {
 router.get('/analytics/summary', async (req, res, next) => {
   try {
     let month = req.query.month; // YYYY-MM
+    if (month && !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+      throw badRequest('month must be in the format YYYY-MM.');
+    }
     if (!month) {
       const { rows: [r] } = await pg.query(
         'SELECT MAX(discharge_month) AS m FROM clinic_monthly_discharges'

@@ -36,8 +36,17 @@ export function errorHandler(err, _req, res, _next) {
     return res.status(400).json({ error: err.message });
   }
 
+  // 22P02 invalid text representation — a malformed uuid or number
+  // reaching a typed cast. Without this it would surface as a 500.
   if (err.code === '22P02') {
-    return res.status(400).json({ error: 'That is not a valid ID.' });
+    return res.status(400).json({ error: 'That is not a valid ID or number.' });
+  }
+
+  // 22007 invalid datetime format, 22008 datetime field overflow.
+  if (err.code === '22007' || err.code === '22008') {
+    return res.status(400).json({
+      error: 'That date could not be read. Use the format YYYY-MM-DD.',
+    });
   }
 
   res.status(err.status ?? 500).json({
