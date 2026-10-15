@@ -5,8 +5,8 @@
 | | |
 |---|---|
 | Repository | https://github.com/Anuj130402/24_a1b |
-| Final commit hash | `<PASTE AFTER FINAL COMMIT>` |
-| Demo video | `https://youtu.be/5LnUj36waC0` |
+| Final commit hash | `fd57b608b1b3be1f71bca10eca63bbda7d2341b5` |
+| Demo video | https://youtu.be/5LnUj36waC0 |
 | Inherited from | [JenilPadshala/SSD-A1-Project-4-CareConnect @ `8b8c56a7`](https://github.com/JenilPadshala/SSD-A1-Project-4-CareConnect/commit/8b8c56a79d7c3129c9054c23c042bae258ae9790) |
 
 ---
