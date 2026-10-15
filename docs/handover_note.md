@@ -71,6 +71,16 @@ committed in `performance/`; figures marked *(theirs)* come from those logs.
 | **C11** | Record a "last refreshed" timestamp for the materialized view | — |
 | **C12** | Document the Python version and the full setup sequence including `04` | D7, D8 |
 | **C13** | Apply `mongo_schema_map.json` as a `$jsonSchema` validator | D9 |
+| **C14** | Paging sanitization for negative or non-integer `limit` / `page` query parameters | — |
+| **C15** | Strict UUID and clinic existence verification on MongoDB review/catalog endpoints | — |
+| **C16** | Latitude/longitude bounds validation (`[-90, 90]`, `[-180, 180]`) and positive radius check on `$geoNear` | — |
+| **C17** | Cap window analytics date ranges to 730 days with `from <= to` validation to prevent memory exhaustion | — |
+| **C18** | Interactive Actor switcher dropdown in navigation (`All roles`, `Front-desk`, `Admin`, `Dispatch`) | — |
+| **C19** | Patient-first origin selection on Map screen matching assignment specification | — |
+| **C20** | Clinic acceptance status filter on Browse screen | — |
+| **C21** | 1-click inline discharge button on Transaction form when blocked by active consultation | — |
+| **C22** | Comprehensive integration test suite (27 tests) in `api/tests/api.test.js` | — |
+| **C23** | One-command database orchestration via `docker-compose.yml` | — |
 
 API-layer notes carried from the review: `create_appointment_atomic()` has no `BEGIN`/`COMMIT`
 and no `EXCEPTION` block — it relies on the caller's transaction, and an uncaught exception

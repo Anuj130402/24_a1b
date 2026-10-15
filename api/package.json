@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node --watch app.js",
     "start": "node app.js",
-    "test": "node --test tests/"
+    "test": "node --test \"tests/**/*.test.js\""
   },
   "dependencies": {
     "cors": "^2.8.5",

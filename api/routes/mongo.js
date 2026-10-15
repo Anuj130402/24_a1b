@@ -2,10 +2,17 @@
 
 import { Router } from 'express';
 import { mongo, pg } from '../db.js';
-import { badRequest } from '../middleware/errors.js';
+import { badRequest, notFound } from '../middleware/errors.js';
 import { nearestNurses, reviewFacets } from '../pipelines/index.js';
 
 const router = Router();
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function assertClinicExists(id) {
+  if (!UUID_REGEX.test(id)) throw badRequest('That is not a valid ID.');
+  const { rows } = await pg.query('SELECT 1 FROM clinics WHERE id = $1', [id]);
+  if (!rows.length) throw notFound('Clinic');
+}
 
 // --- Workflow 3: nearest nurse --------------------------------------
 
@@ -13,7 +20,10 @@ router.get('/nurses/near', async (req, res, next) => {
   try {
     let lat = Number(req.query.lat);
     let lng = Number(req.query.lng);
-    const radius = Math.min(50000, Number(req.query.radius) || 5000);
+    const rawRadius = Number(req.query.radius);
+    const radius = Number.isFinite(rawRadius) && rawRadius > 0
+      ? Math.min(50000, rawRadius)
+      : 5000;
 
     // Accept a clinic_id or patient_id instead of raw coordinates.
     if (req.query.clinic_id) {
@@ -39,6 +49,9 @@ router.get('/nurses/near', async (req, res, next) => {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       throw badRequest('Provide lat and lng, or a clinic_id, or a patient_id.');
     }
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      throw badRequest('Latitude must be between -90 and 90, and longitude between -180 and 180.');
+    }
 
     const data = await mongo
       .collection('NursePings')
@@ -53,6 +66,8 @@ router.get('/nurses/near', async (req, res, next) => {
 
 router.get('/clinics/:id/reviews/stats', async (req, res, next) => {
   try {
+    await assertClinicExists(req.params.id);
+
     const [result] = await mongo
       .collection('PatientReviews')
       .aggregate(reviewFacets(req.params.id))
@@ -86,6 +101,8 @@ router.get('/clinics/:id/reviews/stats', async (req, res, next) => {
 
 router.get('/clinics/:id/reviews', async (req, res, next) => {
   try {
+    await assertClinicExists(req.params.id);
+
     const limit = Math.min(50, Number(req.query.limit) || 10);
     const data = await mongo
       .collection('PatientReviews')
@@ -103,6 +120,8 @@ router.get('/clinics/:id/reviews', async (req, res, next) => {
 
 router.get('/clinics/:id/catalog', async (req, res, next) => {
   try {
+    await assertClinicExists(req.params.id);
+
     const data = await mongo
       .collection('MedicalCatalogs')
       .find({ clinic_id: req.params.id })

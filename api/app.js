@@ -6,6 +6,7 @@ import transactions from './routes/transactions.js';
 import analytics from './routes/analytics.js';
 import mongoRoutes from './routes/mongo.js';
 import { errorHandler } from './middleware/errors.js';
+import { requestLog } from './middleware/requestLog.js';
 import { pg, mongo, connectMongo } from './db.js';
 
 const app = express();
@@ -13,6 +14,7 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+app.use(requestLog);   // one line per request, naming the DB object it drives
 
 app.get('/health', async (_req, res) => {
   const out = { api: 'ok', postgres: 'down', mongo: 'down' };

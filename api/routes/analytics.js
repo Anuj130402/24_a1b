@@ -75,7 +75,11 @@ router.get('/analytics/moving-average', async (req, res, next) => {
     validateRange(from, to);
 
     const { rows } = await pg.query(
-      `SELECT revenue_date, daily_revenue, rolling_total_7day,
+      // revenue_date is cast to text in SQL. node-postgres materialises a
+      // DATE as a JS Date at LOCAL midnight, so on a UTC+5:30 machine
+      // 2026-09-01 serialises as "2026-08-31T18:30:00.000Z" and every
+      // point on the chart is labelled a day early.
+      `SELECT revenue_date::text AS revenue_date, daily_revenue, rolling_total_7day,
               moving_avg_7day, days_in_window, clinic_rank
          FROM clinic_moving_average($1::date, $2::date)
         WHERE clinic_id = $3
@@ -155,10 +159,13 @@ router.get('/analytics/summary', async (req, res, next) => {
       throw badRequest('month must be in the format YYYY-MM.');
     }
     if (!month) {
+      // Formatted in SQL, not via a JS Date, for the same timezone
+      // reason as revenue_date above.
       const { rows: [r] } = await pg.query(
-        'SELECT MAX(discharge_month) AS m FROM clinic_monthly_discharges'
+        `SELECT to_char(MAX(discharge_month), 'YYYY-MM') AS m
+           FROM clinic_monthly_discharges`
       );
-      month = r.m ? new Date(r.m).toISOString().slice(0, 7) : null;
+      month = r.m ?? null;
       if (!month) {
         return res.json({
           month: null, months: [], last_refreshed: null, totals: null, data: [],

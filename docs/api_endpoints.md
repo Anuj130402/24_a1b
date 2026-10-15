@@ -1,112 +1,152 @@
 # API endpoints
 
-The contract between the four of us. Build against these shapes; don't discover them.
+The contract between the browser and the server. Every response shape below
+matches the implementation in `api/routes/`.
 
-**Frozen after Phase 0.** To change an endpoint: say so in the group chat, update this file
-first, then write code.
+Base URL `http://localhost:3001`. The Vite dev server proxies `/api/*` to it,
+so the browser makes same-origin requests and there is no CORS configuration.
 
-Base URL `http://localhost:3001`. All responses are JSON.
-
-| | Owner | Endpoints |
+| Area | Endpoints | Route file |
 |---|---|---|
-| Browse | M1 | `/patients`, `/patients/:id`, `/clinics`, `/clinics/:id`, `/appointments` |
-| Transaction + Audit | M2 | `POST /appointments`, `PATCH /appointments/:id/status`, `/patients/:id/audit` |
-| Analytics | M3 | `/analytics/moving-average`, `/analytics/ranking`, `/analytics/summary`, `POST /analytics/refresh` |
-| Map + Reviews | M4 | `/nurses/near`, `/clinics/:id/reviews/stats`, `/clinics/:id/catalog` |
+| Health | `/health` | `api/app.js` |
+| Browse | `/patients`, `/patients/:id`, `/clinics`, `/clinics/:id`, `/appointments` | `routes/browse.js` |
+| Workflow 1 + Audit | `POST /appointments`, `PATCH /appointments/:id/status`, `/patients/:id/audit` | `routes/transactions.js` |
+| Workflow 2 | `/analytics/moving-average`, `/analytics/ranking`, `/analytics/summary`, `POST /analytics/refresh` | `routes/analytics.js` |
+| Workflow 3 + 4 | `/nurses/near`, `/clinics/:id/reviews/stats`, `/clinics/:id/reviews`, `/clinics/:id/catalog` | `routes/mongo.js` |
 
 ---
 
 ## Conventions
 
-**Lists** always return this envelope, because `<Pagination>` depends on it:
+**Lists** return this envelope, which is what the `<Pagination>` component reads:
 
 ```json
 { "data": [ ... ], "page": 1, "limit": 25, "total": 25000 }
 ```
 
-`page` is 1-based. `limit` defaults to 25, capped at 100.
+`page` is 1-based. `limit` defaults to 25 and is capped at 100. `total` counts
+every matching row, not the rows on this page.
 
-**Single records** return the object directly, not wrapped.
+**Single records** are returned directly, with no envelope.
 
-**Errors** always return `{ "error": "<sentence a user can read>" }` with an appropriate status.
-Never build these by hand — `throw` and let `api/middleware/errors.js` translate.
+**Errors** always return `{ "error": "<a sentence a user can read>" }`.
+Routes never build these by hand — they `throw` or `next(err)` and
+`middleware/errors.js` maps the PostgreSQL SQLSTATE:
 
-| Status | When |
-|---|---|
-| 400 | Bad input, or `P0001` from a stored procedure |
-| 404 | Record not found |
-| 409 | `23505` — conflicts with the partial unique index |
-| 500 | Anything else |
+| SQLSTATE | Cause | Status |
+|---|---|---|
+| `P0001` | `RAISE EXCEPTION` in a stored procedure | 400 |
+| `22P02` | Malformed uuid or numeric | 400 |
+| `22007` / `22008` | Malformed or out-of-range date | 400 |
+| `23514` | CHECK constraint | 400 |
+| `23503` | Foreign key | 400 |
+| `23505` on `idx_active_consult` | Second open consultation | 409 |
+| `23505` other | Any other unique violation | 409 |
+| — | Anything else | 500 |
 
-**Money is a string.** `node-postgres` returns `DECIMAL(10,2)` as a string to avoid float
-drift. Keep it a string all the way to `<Money>`. Never `parseFloat` and do arithmetic in JS.
+**Money** is a string. `node-postgres` returns `DECIMAL(10,2)` as a string to
+avoid float drift, and it stays a string through to `<Money>`, which formats it.
+Subtracting two of them as floats is wrong: `16384.01 - 16134.01` evaluates to
+`249.99999999999818`, not `250`.
 
-```json
-"hsa_balance": "49070.00"
-```
+**Dates.** Timestamps are ISO 8601 UTC (`2026-10-04T08:30:00.000Z`). Plain
+calendar dates are **strings** (`"2026-09-01"`), cast with `::text` in SQL —
+`node-postgres` materialises a `DATE` at local midnight, so on a UTC+5:30
+machine a JS `Date` round-trip shifts it into the previous day.
 
-**Timestamps are ISO 8601 UTC**, e.g. `"2026-10-04T08:30:00.000Z"`. Format for display in the
-browser, not on the server.
+**Coordinates** are numbers, not strings — `latitude` and `longitude` are
+`DOUBLE PRECISION`, unlike the money columns.
 
-**IDs are UUID strings.**
+**Identifiers** are UUID strings. An omitted filter and an empty one
+(`?patient_id=`) both mean "do not filter" and become SQL `NULL`.
 
 ---
 
-## Browse — M1
+## Health
+
+### `GET /health`
+
+```json
+{ "api": "ok", "postgres": "ok", "mongo": "ok" }
+```
+
+Each database is reported independently. MongoDB being unreachable does not stop
+the server starting, so `mongo` can read `"down"` while the rest works — the
+PostgreSQL screens stay usable.
+
+---
+
+## Browse
 
 ### `GET /patients`
 
 | Param | Type | Default | Notes |
 |---|---|---|---|
 | `page` | int | 1 | |
-| `limit` | int | 25 | max 100 |
-| `q` | string | `''` | case-insensitive match on `name` |
+| `limit` | int | 25 | capped at 100 |
+| `q` | string | — | case-insensitive match on `name` |
 
 ```json
 {
   "data": [
-    { "id": "a4f2c81e-...", "name": "Meera Raghavan", "hsa_balance": "49070.00" }
+    {
+      "id": "578774cf-1327-4283-8bf4-f613a42901d0",
+      "name": "Aaron Allen",
+      "hsa_balance": "3767.55",
+      "latitude": 22.761527483350697,
+      "longitude": 88.017454
+    }
   ],
   "page": 1, "limit": 25, "total": 25000
 }
 ```
 
+`latitude` and `longitude` are `null` for patients with no recorded location.
+Those patients cannot be used as a Map origin.
+
 ### `GET /patients/:id`
 
 ```json
 {
-  "id": "a4f2c81e-...",
-  "name": "Meera Raghavan",
-  "hsa_balance": "49070.00",
+  "id": "578774cf-…",
+  "name": "Aaron Allen",
+  "hsa_balance": "3767.55",
+  "latitude": 22.761527,
+  "longitude": 88.017454,
   "open_appointment": {
-    "id": "7c1a94e2-...", "clinic_id": "b03f5d71-...",
-    "clinic_name": "Nilgiri Family Clinic",
-    "status": "IN_CONSULTATION", "copay_amount": "250.00",
-    "created_at": "2026-10-04T08:30:00.000Z"
+    "id": "77a7293f-…",
+    "clinic_id": "4df9df4e-…",
+    "clinic_name": "Adams Medical Group",
+    "status": "WAITING",
+    "copay_amount": "250.00",
+    "created_at": "2026-10-15T11:04:52.000Z"
   },
   "appointment_count": 7
 }
 ```
 
-`open_appointment` is `null` when the patient has no `WAITING` or `IN_CONSULTATION` row. The
-Transaction screen uses it to disable booking before the user hits the 409.
+`open_appointment` is `null` when the patient has no `WAITING` or
+`IN_CONSULTATION` row. The booking form uses it to warn before the partial
+unique index rejects a second booking.
 
-**404** if no such patient.
+**404** `Patient not found.` · **400** on a malformed uuid.
 
 ### `GET /clinics`
 
 | Param | Type | Default | Notes |
 |---|---|---|---|
 | `page`, `limit` | int | 1, 25 | |
-| `q` | string | `''` | matches `name` |
-| `accepting` | bool | — | omit for all; `true`/`false` to filter |
+| `q` | string | — | matches `name` |
+| `accepting` | `true` \| `false` | — | omit, or send empty, for all clinics |
 
 ```json
 {
   "data": [
     {
-      "id": "b03f5d71-...", "name": "Nilgiri Family Clinic",
-      "latitude": 17.4532608, "longitude": 78.359518,
+      "id": "4df9df4e-…",
+      "name": "Adams Medical Group",
+      "latitude": 19.026819,
+      "longitude": 72.984744,
       "is_accepting_patients": true
     }
   ],
@@ -114,12 +154,9 @@ Transaction screen uses it to disable booking before the user hits the 409.
 }
 ```
 
-Latitude and longitude are numbers, not strings — they're `DOUBLE PRECISION`, not `DECIMAL`.
-The Map screen uses this endpoint to populate its origin picker.
-
 ### `GET /clinics/:id`
 
-The clinic fields above, plus:
+The clinic fields above, plus aggregates:
 
 ```json
 {
@@ -131,41 +168,44 @@ The clinic fields above, plus:
 
 ### `GET /appointments`
 
-| Param | Type | Default | Notes |
-|---|---|---|---|
-| `page`, `limit` | int | 1, 25 | |
-| `patient_id` | uuid | — | |
-| `clinic_id` | uuid | — | |
-| `status` | enum | — | `WAITING` \| `IN_CONSULTATION` \| `DISCHARGED` |
+| Param | Type | Notes |
+|---|---|---|
+| `page`, `limit` | int | |
+| `patient_id` | uuid | |
+| `clinic_id` | uuid | |
+| `status` | enum | `WAITING` \| `IN_CONSULTATION` \| `DISCHARGED` |
 
 ```json
 {
   "data": [
     {
-      "id": "7c1a94e2-...",
-      "patient_id": "a4f2c81e-...", "patient_name": "Meera Raghavan",
-      "clinic_id": "b03f5d71-...", "clinic_name": "Nilgiri Family Clinic",
-      "copay_amount": "250.00", "status": "WAITING",
-      "created_at": "2026-10-04T08:30:00.000Z"
+      "id": "b997cdae-…",
+      "patient_id": "2719176f-…", "patient_name": "Thomas Miller",
+      "clinic_id": "4df9df4e-…", "clinic_name": "Adams Medical Group",
+      "copay_amount": "250.00",
+      "status": "DISCHARGED",
+      "created_at": "2026-05-10T17:00:49.000Z",
+      "discharged_at": "2026-05-10T20:14:22.000Z"
     }
   ],
   "page": 1, "limit": 25, "total": 60000
 }
 ```
 
-Names are joined server-side. The browser should never make N+1 calls to resolve them.
+Names are joined server-side so the browser never makes N+1 lookups.
+`discharged_at` is `null` unless the status is `DISCHARGED`.
 
 ---
 
-## Transaction + Audit — M2
+## Workflow 1 — booking, lifecycle and the audit trail
 
 ### `POST /appointments`
 
-Calls `create_appointment_atomic(p_patient_id, p_clinic_id, p_copay_amount)`. Do not replicate
-its logic in JavaScript.
+Calls `create_appointment_atomic(p_patient_id, p_clinic_id, p_copay_amount)`.
+None of its logic is reimplemented in JavaScript.
 
 ```json
-{ "patient_id": "a4f2c81e-...", "clinic_id": "b03f5d71-...", "copay_amount": "250.00" }
+{ "patient_id": "0a5eaa08-…", "clinic_id": "4df9df4e-…", "copay_amount": "250.00" }
 ```
 
 **201**
@@ -173,23 +213,28 @@ its logic in JavaScript.
 ```json
 {
   "appointment": {
-    "id": "e9d2807a-...", "status": "WAITING",
-    "copay_amount": "250.00", "created_at": "2026-10-05T18:02:11.000Z"
+    "id": "77a7293f-…",
+    "status": "WAITING",
+    "copay_amount": "250.00",
+    "created_at": "2026-10-15T11:04:52.000Z"
   },
-  "balance_before": "49320.00",
-  "balance_after": "49070.00",
+  "balance_before": "1082.08",
+  "balance_after": "832.08",
   "audit_entry": {
-    "id": "14ab6cf0-...", "action_type": "DEBIT",
-    "amount_changed": "250.00", "balance_after": "49070.00",
-    "timestamp": "2026-10-05T18:02:11.000Z"
+    "id": "a1b2c3d4-…",
+    "action_type": "DEBIT",
+    "amount_changed": "250.00",
+    "balance_after": "832.08",
+    "timestamp": "2026-10-15T11:04:52.000Z"
   }
 }
 ```
 
-`audit_entry` is read back after the call. It was written by the trigger, not by us — showing
-it is how the UI demonstrates the trigger fired.
+`audit_entry` is **read back**, not written by the API. `trigger_audit_hsa_balance`
+produced it when the procedure updated the balance. Showing it is how the UI
+demonstrates the trigger fired.
 
-**Failures.** Five distinct paths, all already carrying readable messages:
+**Failures**
 
 | Cause | SQLSTATE | Status | Message |
 |---|---|---|---|
@@ -197,74 +242,88 @@ it is how the UI demonstrates the trigger fired.
 | Patient missing | `P0001` | 400 | `Patient <uuid> does not exist` |
 | Clinic missing | `P0001` | 400 | `Clinic <uuid> does not exist` |
 | Clinic closed | `P0001` | 400 | `Clinic <uuid> is not accepting patients` |
-| Balance too low | `P0001` | 400 | `Insufficient HSA balance. Available: 120.00, Required: 250.00` |
-| Second open appointment | `23505` | 409 | translated by middleware — the index raises this, not the procedure |
+| Balance too low | `P0001` | 400 | `Insufficient HSA balance. Available: …, Required: …` |
+| Second open visit | `23505` | 409 | translated by the middleware — raised by the index, not the procedure |
 
-**Transaction handling.** An exception leaves the connection in an aborted state. Always
-`ROLLBACK` before releasing it, or the *next* request on that connection fails for unrelated
-reasons. See `api/routes/_TEMPLATE.js`.
+**Transaction handling.** A raised exception leaves the connection in an aborted
+transaction, so the route always `ROLLBACK`s before releasing it to the pool.
+Without that, the *next* request on that connection fails for unrelated reasons.
+
+**Concurrency.** Ten simultaneous bookings for one patient produce exactly one
+201 and nine 409s: `create_appointment_atomic` takes a `FOR UPDATE` lock on the
+patient row, and the partial unique index rejects the rest.
 
 ### `PATCH /appointments/:id/status`
 
-New in A2 — nothing in A1 moves an appointment between statuses. Needed to demonstrate the
-partial unique index: discharge, then book again.
+Added in Assignment 2 (`advance_appointment_status`). Nothing in Part A could
+move an appointment between statuses, so the partial unique index could never be
+demonstrated — once a patient had an open visit they were blocked forever.
 
 ```json
 { "status": "DISCHARGED" }
 ```
 
-Legal transitions: `WAITING → IN_CONSULTATION → DISCHARGED`. Reject anything else with **400**
-`Cannot move an appointment from DISCHARGED back to WAITING.`
+Forward only: `WAITING → IN_CONSULTATION → DISCHARGED`, and `WAITING → DISCHARGED`
+directly. Anything else is **400** `Cannot move an appointment from X to Y`.
+Discharging stamps `discharged_at` and frees the patient to book again.
 
-**200** returns the updated appointment.
+**200** returns the updated appointment in the same shape as `GET /appointments`.
 
 ### `GET /patients/:id/audit`
 
-| Param | Type | Default | Notes |
-|---|---|---|---|
-| `page`, `limit` | int | 1, 25 | |
-| `from`, `to` | ISO date | — | filters on `timestamp` |
+| Param | Type | Notes |
+|---|---|---|
+| `page`, `limit` | int | |
+| `from`, `to` | `YYYY-MM-DD` | inclusive; filters on `timestamp` |
 
 ```json
 {
-  "patient": { "id": "a4f2c81e-...", "name": "Meera Raghavan", "hsa_balance": "49070.00" },
+  "patient": { "id": "578774cf-…", "name": "Aaron Allen", "hsa_balance": "3767.55" },
+  "summary": { "total_credit": "62500.00", "total_debit": "13430.00" },
   "data": [
     {
-      "id": "14ab6cf0-...", "action_type": "DEBIT",
-      "amount_changed": "250.00", "balance_after": "49070.00",
-      "timestamp": "2026-10-05T18:02:11.000Z"
+      "id": "14ab6cf0-…",
+      "action_type": "DEBIT",
+      "amount_changed": "250.00",
+      "balance_after": "832.08",
+      "timestamp": "2026-10-15T11:04:52.000Z"
     }
   ],
   "page": 1, "limit": 25, "total": 42
 }
 ```
 
-**Note:** the running balance is already stored. `balance_after` is written by the trigger on
-every movement, so there is no need to compute one — just render that column. We verified it
-reconciles exactly: 0 mismatches across 25,000 patients.
+Newest first. `summary` covers the filtered range, not all time.
 
-Order newest-first. This needs `CREATE INDEX ON wallet_audit_logs (patient_id, timestamp DESC)`
-(change C5) or it sequentially scans 116,655 rows per page load.
+**The running balance is not computed.** `balance_after` is written by the
+trigger on every movement, so the screen renders a stored column. Verified
+against the seed: zero mismatches across 25,000 patients.
+
+Requires `idx_audit_patient_time` from `sql/07_a2_additions.sql`, or this
+sequentially scans 116,655 rows per page.
 
 ---
 
-## Analytics — M3
+## Workflow 2 — window analytics and the materialized view
 
 ### `GET /analytics/moving-average`
 
-Wraps `sql/06_window_analytics.sql`. Returns one series for the chart.
+Wraps `clinic_moving_average(from, to)`, which is `sql/06_window_analytics.sql`
+parameterised by date.
 
 | Param | Type | Required | Notes |
 |---|---|---|---|
 | `clinic_id` | uuid | yes | |
-| `from`, `to` | ISO date | no | defaults to the last 90 days |
+| `from`, `to` | `YYYY-MM-DD` | no | defaults to the last 90 days of discharge activity |
 
 ```json
 {
-  "clinic": { "id": "b03f5d71-...", "name": "Nilgiri Family Clinic" },
+  "clinic": { "id": "4df9df4e-…", "name": "Adams Medical Group" },
+  "from": "2026-09-01",
+  "to": "2026-09-05",
   "data": [
     {
-      "revenue_date": "2026-09-28",
+      "revenue_date": "2026-09-01",
       "daily_revenue": "1250.00",
       "rolling_total_7day": "8400.00",
       "moving_avg_7day": "1200.00",
@@ -275,87 +334,106 @@ Wraps `sql/06_window_analytics.sql`. Returns one series for the chart.
 }
 ```
 
-Field names match the A1 query's output columns exactly — don't rename them.
+Column names match the Part A query's output exactly.
 
-> **Important.** `DENSE_RANK()` partitions by `revenue_date` across *all* clinics. If you filter
-> by `clinic_id` inside the `daily_totals` CTE, the rank is computed over one clinic and comes
-> back as `1` on every row.
->
-> - **Date range** → safe to push into `daily_totals` / `reporting_period`. Cuts the row count.
-> - **Clinic filter** → must be applied at the *outer* `SELECT`, after the window functions.
->
-> Unfiltered the query returns ~134,750 rows in ~405 ms, which is far too much for a browser.
+> **The clinic filter is applied to the function's result, not inside it.**
+> `DENSE_RANK()` partitions by `revenue_date` across all 250 clinics, so
+> filtering by clinic inside the CTEs ranks a clinic against itself and every
+> row comes back as rank 1. The date range *is* pushed down — it narrows rows
+> without changing the competitor set.
+
+**Validation.** `from` must not be after `to`, and the range is capped at
+**730 days**. The function cross-joins 250 clinics against every day in the
+range, so an unbounded request (a 50-year span) builds millions of rows:
+
+```
+400 { "error": "That range covers 18263 days. Please request 730 days or fewer." }
+```
 
 ### `GET /analytics/ranking`
 
-The leaderboard for one date, same query, filtered the other way.
+The leaderboard for a single date — the same function, filtered the other way.
 
 | Param | Type | Default |
 |---|---|---|
-| `date` | ISO date | most recent date in the data |
-| `limit` | int | 20 |
+| `date` | `YYYY-MM-DD` | the most recent day with at least 20 discharges |
+| `limit` | int | 20, capped at 50 |
 
 ```json
 {
-  "date": "2026-09-28",
+  "date": "2026-10-13",
+  "bounds": { "min_date": "2025-04-23", "max_date": "2026-10-13" },
   "data": [
-    { "clinic_rank": 1, "clinic_name": "Saraswati Urgent Care", "moving_avg_7day": "3480.00" },
-    { "clinic_rank": 2, "clinic_name": "Nilgiri Family Clinic", "moving_avg_7day": "3120.00" }
+    { "clinic_id": "4f3ce36b-…", "clinic_name": "Phillips Urgent Care",
+      "moving_avg_7day": "3480.00", "daily_revenue": "4100.00", "clinic_rank": 1 }
   ]
 }
 ```
 
-Ties share a rank and the next clinic still gets the next number — that's why A1 used
-`DENSE_RANK` rather than `RANK`. Expect ties at the bottom, since clinics with no revenue on a
-date all sit at `0.00`.
+`bounds` drives the min/max on the screen's date picker.
+
+The default deliberately skips days with almost no activity. Discharging two
+appointments by hand during a demo would otherwise make *today* the most recent
+discharge date, and on that date every clinic's 7-day average is 0.00 — so all
+250 tie at rank 1 and the leaderboard looks broken.
+
+Ties share a rank and the next clinic still takes the next number, which is why
+Part A used `DENSE_RANK` rather than `RANK`.
 
 ### `GET /analytics/summary`
 
-Reads the materialized view `clinic_monthly_discharges` (`clinic_id`, `discharge_month`,
-`total_discharges`).
+Reads the materialized view `clinic_monthly_discharges`.
 
 | Param | Type | Default |
 |---|---|---|
-| `month` | `YYYY-MM` | latest month present |
+| `month` | `YYYY-MM` | the latest month in the view |
 
 ```json
 {
-  "month": "2026-09",
-  "last_refreshed": "2026-10-05T17:04:00.000Z",
+  "month": "2026-10",
+  "months": ["2026-10", "2026-09", "2026-08"],
+  "last_refreshed": "2026-10-15T11:03:08.714Z",
   "totals": { "clinics_reporting": 250, "total_discharges": 4820 },
   "data": [
-    { "clinic_id": "b03f5d71-...", "clinic_name": "Nilgiri Family Clinic", "total_discharges": 31 }
+    { "clinic_id": "4df9df4e-…", "clinic_name": "Adams Medical Group",
+      "total_discharges": 31, "total_revenue": "3410.00" }
   ]
 }
 ```
 
-`last_refreshed` does not exist in A1 — change C11 adds a one-row table that
-`refresh_clinic_discharges_mv()` updates. Return `null` until that lands.
+`months` populates the screen's month picker. `last_refreshed` comes from
+`mv_refresh_log`, added in Assignment 2 — PostgreSQL does not record when a
+materialized view was refreshed.
 
 ### `POST /analytics/refresh`
 
-No body. Calls `refresh_clinic_discharges_mv()`, which runs `REFRESH MATERIALIZED VIEW
-CONCURRENTLY` — non-blocking, which is why `idx_clinic_month_discharge` has to exist.
+No body. Calls `refresh_clinic_discharges_mv()`, which runs
+`REFRESH MATERIALIZED VIEW CONCURRENTLY` — non-blocking for readers, which is
+why `idx_clinic_month_discharge` has to exist — and records the time.
 
 ```json
-{ "refreshed_at": "2026-10-05T18:11:00.000Z" }
+{ "refreshed_at": "2026-10-15T11:03:08.714Z" }
 ```
 
-Takes a few seconds. Disable the button while it's in flight.
+Takes a few seconds; the button is disabled while it runs.
 
 ---
 
-## Map + Reviews — M4
+## Workflow 3 — nearest nurse
 
 ### `GET /nurses/near`
 
-Wraps Workflow 3. Pipeline lives in `api/pipelines/geonear.js` so the A1 script and the API
-share one definition.
+Wraps the `$geoNear` pipeline in `api/pipelines/index.js`, shared with
+`mongo/02_workflow3_geonear.js`.
 
-| Param | Type | Default | Notes |
-|---|---|---|---|
-| `lat`, `lng` | float | required | origin |
-| `radius` | int | 5000 | metres |
+| Param | Type | Notes |
+|---|---|---|
+| `patient_id` | uuid | origin is that patient's location — the brief's "nearest nurse to patient" |
+| `clinic_id` | uuid | alternative origin |
+| `lat`, `lng` | float | raw coordinates |
+| `radius` | int | metres, default 5000, capped at 50000 |
+
+Provide exactly one of `patient_id`, `clinic_id`, or the `lat`/`lng` pair.
 
 ```json
 {
@@ -363,65 +441,99 @@ share one definition.
   "radius": 5000,
   "data": [
     {
-      "nurse_id": "nurse_3",
+      "nurse_id": "N_003",
+      "name": "Connie Mcdonald",
+      "phone": "+91 9876543210",
+      "home_clinic_name": "Chen Urgent Care",
       "location": { "type": "Point", "coordinates": [78.3612, 17.4498] },
       "distance_m": 412.6,
       "active": true,
-      "created_at": "2026-10-05T17:09:44.000Z"
+      "created_at": "2026-10-15T07:48:17.000Z"
     }
   ]
 }
 ```
 
-Sorted nearest-first. **GeoJSON is `[longitude, latitude]`** — Leaflet wants `[lat, lng]`, so
-swap at the component boundary, not in the API.
+Sorted nearest first, **one entry per nurse**. Part A used `$limit: 1` with no
+grouping, which returns the nearest *ping* rather than the nearest *nurse* —
+with ~12,500 pings per nurse that answers the wrong question. The pipeline now
+groups by `nurse_id` and `$lookup`s the `Nurses` collection for the name and
+home clinic.
 
-A1 used `$limit: 1`, which returns the nearest *ping* rather than the nearest *nurse*
-(defect D5). Change C4 groups by `nurse_id` and returns one entry per nurse at their closest
-position — that's what this shape assumes.
+**400** if no usable origin is given, or if the chosen patient has no recorded
+location.
 
-The Map screen polls this every few seconds. Keep it cheap; it's an indexed `$geoNear`, ~6 ms.
+**GeoJSON is `[longitude, latitude]`.** Leaflet expects `[lat, lng]`, so the
+Map component swaps at the boundary rather than the API doing it.
+
+---
+
+## Workflow 4 — faceted review analytics
 
 ### `GET /clinics/:id/reviews/stats`
 
-Wraps Workflow 4. A1's pipeline has no `$match`, so it reports globally — change C7 adds one.
+Wraps the `$facet` pipeline, which computes all three statistics in a single
+pass over the collection.
 
 ```json
 {
-  "clinic_id": "b03f5d71-...",
+  "clinic_id": "4df9df4e-…",
   "rating_distribution": [
-    { "rating": 1, "count": 1240 }, { "rating": 2, "count": 1810 },
-    { "rating": 3, "count": 2050 }, { "rating": 4, "count": 2390 },
-    { "rating": 5, "count": 2510 }
+    { "rating": 1, "count": 12 }, { "rating": 2, "count": 18 },
+    { "rating": 3, "count": 36 }, { "rating": 4, "count": 64 },
+    { "rating": 5, "count": 70 }
   ],
   "frequent_tags": [
-    { "tag": "thorough", "frequency": 4120 },
-    { "tag": "empathetic", "frequency": 3890 }
+    { "tag": "thorough", "frequency": 82 },
+    { "tag": "empathetic", "frequency": 77 }
   ],
-  "average_rating": 3.42,
-  "total_reviews": 10000
+  "average_rating": 3.81,
+  "total_reviews": 200
 }
 ```
 
-The pipeline emits `$bucket` output as `{ _id, count }` and tags as `{ _id, frequency }`.
-Reshape to `rating` / `tag` in the route so the chart code isn't dealing with `_id`.
+The pipeline emits `$bucket` output as `{ _id, count }` and tags as
+`{ _id, frequency }`; the route reshapes them to `rating` and `tag` so the chart
+code never handles `_id`. All five buckets are always present, zero-filled —
+`$bucket` boundaries run to 6 because upper bounds are exclusive, so a 5-star
+review needs the 6 to be counted.
 
-Tag vocabulary is fixed: `empathetic`, `punctual`, `clear-instructions`, `rushed`,
+Part A's pipeline had no `$match` and reported globally; the `$match` added here
+scopes it to one clinic, backed by an index on `PatientReviews.clinic_id`.
+
+Returns zeroes and empty arrays for a clinic with no reviews.
+
+Tag vocabulary: `empathetic`, `punctual`, `clear-instructions`, `rushed`,
 `unprofessional`, `friendly`, `thorough`.
 
-Returns empty arrays and `total_reviews: 0` for a clinic with no reviews — the UI must handle
-that, and **it is the current state for every clinic** until change C1 lands.
+### `GET /clinics/:id/reviews`
 
-### `GET /clinics/:id/catalog`
-
-One or more `MedicalCatalogs` documents. The spec requires displaying at least one flexible
-catalog document readably.
+Recent review text for the same clinic. `limit` defaults to 10, capped at 50.
 
 ```json
 {
-  "clinic_id": "b03f5d71-...",
   "data": [
     {
+      "rating": 5,
+      "review_text": "Explained everything clearly.",
+      "bedside_manner_tags": ["thorough", "punctual"],
+      "created_at": "2026-09-28T04:12:00.000Z"
+    }
+  ]
+}
+```
+
+### `GET /clinics/:id/catalog`
+
+The flexible `MedicalCatalogs` documents, up to 10.
+
+```json
+{
+  "clinic_id": "4df9df4e-…",
+  "data": [
+    {
+      "clinic_id": "4df9df4e-…",
+      "clinic_name": "Adams Medical Group",
       "specialist_name": "Dr. Anand Varma",
       "specialty": "Cardiology",
       "availability": [
@@ -436,15 +548,14 @@ catalog document readably.
 }
 ```
 
-`availability` and `medications_handled` are variable-length — render them as nested lists,
-not a fixed table. This is the document whose shape would be awkward in SQL, so it's worth
-showing properly rather than dumping JSON.
-
-Same as above: empty until C1 lands.
+`availability` and `medications_handled` are variable-length and vary by
+specialist — the reason this collection lives in MongoDB rather than SQL. The
+screen renders them as nested lists rather than flattening them into a table.
 
 ---
 
-## Not in scope
+## Out of scope
 
-No authentication. The spec says real login is not required — actor switching is a dropdown
-in the UI that sets `patient_id` on requests.
+No authentication. The brief states real login is not required; the actor
+switcher in the sidebar changes which screens are foregrounded for a
+demonstration and does not restrict what the API will serve.

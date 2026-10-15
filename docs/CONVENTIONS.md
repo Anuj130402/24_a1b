@@ -1,6 +1,13 @@
 # Conventions
 
-One page. Read it once, follow it for ten days.
+The working agreement for this project: ports, branch discipline, file
+ownership, and the design-token rule.
+
+> **Note.** This was written when Assignment 2 began, for a team of four. The
+> ownership and branching sections describe the process that was agreed rather
+> than the one that ran — see the contribution note in the README. The
+> conventions that shaped the code itself, particularly the design tokens and
+> the API response envelope, were followed throughout.
 
 ## Ports
 

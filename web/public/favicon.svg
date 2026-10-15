@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="CareConnect">
+  <!-- Pine tile, cream pulse: the two colours the interface is built from.
+       A single heartbeat trace is the one clinical mark that still reads at
+       16 pixels, where a cross or a stethoscope turns to mush. -->
+  <rect width="32" height="32" rx="7" fill="#2D5A4C"/>
+  <path d="M4 16h5.5l2.6-6.4 4 13 3-9.2 2 2.6H28"
+        fill="none" stroke="#FAF6EE" stroke-width="2.6"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

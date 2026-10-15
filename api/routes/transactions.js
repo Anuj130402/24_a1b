@@ -109,8 +109,10 @@ router.patch('/appointments/:id/status', async (req, res, next) => {
 
 router.get('/patients/:id/audit', async (req, res, next) => {
   try {
-    const page = Math.max(1, Number(req.query.page) || 1);
-    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 25));
+    const rawPage = Number(req.query.page);
+    const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
+    const rawLimit = Number(req.query.limit);
+    const limit = Number.isInteger(rawLimit) && rawLimit > 0 ? Math.min(100, rawLimit) : 25;
     const from = req.query.from || null;
     const to = req.query.to || null;
 

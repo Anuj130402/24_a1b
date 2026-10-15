@@ -11,7 +11,7 @@ set -euo pipefail
 
 TEAM="24"
 NAME="${TEAM}_a1b"
-OUT="../${NAME}.zip"
+OUT="${1:-../${NAME}.zip}"
 LIMIT_MB=20
 
 cd "$(dirname "$0")/.."

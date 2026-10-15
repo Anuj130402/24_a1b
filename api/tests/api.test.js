@@ -38,6 +38,14 @@ const json = (method, payload) => ({
   body: JSON.stringify(payload),
 });
 
+/**
+ * Money arrives from PostgreSQL as a DECIMAL string. Converting two of
+ * them to float and subtracting loses precision — 16384.01 - 16134.01
+ * evaluates to 249.99999999999818, not 250. Compare whole paise instead.
+ * This is the same reason <Money> never does arithmetic on its input.
+ */
+const paise = (value) => Math.round(Number(value) * 100);
+
 // Shared across the booking tests, which run in order.
 const ctx = {};
 
@@ -146,16 +154,19 @@ describe('workflow 1 — create_appointment_atomic', () => {
     );
 
     assert.equal(status, 201);
-    assert.equal(body.appointment.status, 'WAITING', 'new visits start as WAITING');
-    assert.equal(
-      Number(body.balance_before) - Number(body.balance_after),
-      Number(copay),
-      'balance must drop by exactly the copay'
-    );
 
+    // Record state before asserting on it, so one failed expectation
+    // does not cascade into every later test in the file.
     ctx.appointmentId = body.appointment.id;
     ctx.auditEntry = body.audit_entry;
     ctx.balanceAfter = body.balance_after;
+
+    assert.equal(body.appointment.status, 'WAITING', 'new visits start as WAITING');
+    assert.equal(
+      paise(body.balance_before) - paise(body.balance_after),
+      paise(copay),
+      'balance must drop by exactly the copay'
+    );
   });
 
   test('the audit trigger wrote the ledger row by itself', async () => {
@@ -164,10 +175,10 @@ describe('workflow 1 — create_appointment_atomic', () => {
     const e = ctx.auditEntry;
     assert.ok(e, 'no audit entry returned');
     assert.equal(e.action_type, 'DEBIT');
-    assert.equal(Number(e.amount_changed), 250);
+    assert.equal(paise(e.amount_changed), paise('250.00'));
     assert.equal(
-      Number(e.balance_after),
-      Number(ctx.balanceAfter),
+      paise(e.balance_after),
+      paise(ctx.balanceAfter),
       'ledger balance must agree with the patient row'
     );
   });
@@ -238,7 +249,8 @@ describe('workflow 1 — create_appointment_atomic', () => {
 // ------------------------------------------------- status lifecycle
 
 describe('appointment lifecycle', () => {
-  test('advances WAITING to IN_CONSULTATION to DISCHARGED', async () => {
+  test('advances WAITING to IN_CONSULTATION to DISCHARGED', async (t) => {
+    if (!ctx.appointmentId) return t.skip('no appointment was booked');
     let r = await api(
       `/appointments/${ctx.appointmentId}/status`,
       json('PATCH', { status: 'IN_CONSULTATION' })
@@ -255,7 +267,8 @@ describe('appointment lifecycle', () => {
     assert.ok(r.body.discharged_at, 'discharged_at must be stamped');
   });
 
-  test('refuses to move an appointment backwards', async () => {
+  test('refuses to move an appointment backwards', async (t) => {
+    if (!ctx.appointmentId) return t.skip('no appointment was booked');
     const { status, body } = await api(
       `/appointments/${ctx.appointmentId}/status`,
       json('PATCH', { status: 'WAITING' })
@@ -264,7 +277,8 @@ describe('appointment lifecycle', () => {
     assert.match(body.error, /cannot move an appointment/i);
   });
 
-  test('discharging frees the patient to book again', async () => {
+  test('discharging frees the patient to book again', async (t) => {
+    if (!ctx.appointmentId) return t.skip('no appointment was booked');
     // The whole point of the partial unique index: it constrains only
     // open visits, so a discharged patient is bookable once more.
     const { status } = await api(
